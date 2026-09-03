@@ -1,0 +1,39 @@
+# Weekly: try every forbidden action with a real agent-class credential and
+# fail if any goes through — or if any could not be tried (S4.5: a rule with
+# no attempt behind it is reported as unproven, not as satisfied).
+#
+# DOK_AGENT_TOKEN is the agent-class token. It does not exist yet; until a
+# person creates the agent identity, this job fails as unproven, which is
+# the honest state. Never put a steward or owner token here — a refusal
+# under a bypassing identity proves nothing.
+name: negative-capability
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Toolchain from rust-toolchain.toml
+        run: rustup show active-toolchain || rustup toolchain install
+      - run: cargo build --release --quiet
+      - name: Run the pack as the agent identity, expecting green
+        env:
+          GH_TOKEN: ${{ secrets.DOK_AGENT_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::DOK_AGENT_TOKEN is not set: every probe is unproven"
+            exit 1
+          fi
+          ./target/release/dok conform \
+            --pack conformance/negative-capability/pack.yaml \
+            --as agent --expect green \
+            --remote "https://x-access-token:${GH_TOKEN}@github.com/dokimastes/dokimastes.git" \
+            | tee -a "$GITHUB_STEP_SUMMARY"

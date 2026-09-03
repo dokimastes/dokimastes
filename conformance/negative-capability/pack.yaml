@@ -1,0 +1,171 @@
+# The negative-capability suite for the framework's own repository.
+#
+# Every probe is a sentence the framework says to a client, an auditor or a
+# Betriebsrat: "an agent cannot …". Each is tried for real, under a named
+# identity, and each refusal is credited to the mechanism whose wording
+# appears in the platform's response. A probe that is not tried is reported
+# as unproven — never as satisfied (S4.5).
+#
+# Run it red first, against the unprotected repository, and watch every
+# attempt succeed. Then apply the protection and watch every attempt fail.
+# A suite first executed after the controls exist has never demonstrated
+# anything.
+#
+# Patterns are substrings of the platform's response. Wording marked
+# "recorded" was observed on a real refusal; wording marked "expected" is
+# best knowledge and must be corrected from the first real refusal, never
+# left as a guess that happens to pass.
+
+apiVersion: dokimastes/v1
+kind: NegativeCapabilityPack
+name: dokimastes-repository
+description: >
+  What no non-steward identity can do to dokimastes/dokimastes, and what
+  the organisation's own settings must say.
+target:
+  repository: dokimastes/dokimastes
+
+probes:
+  - id: NC-01
+    claim: main cannot be force-pushed.
+    run_as: [agent, maintainer]
+    attempt: { kind: force-push, branch: main }
+    refused_by:
+      - mechanism: "ruleset on main: block force-push"
+        pattern: "Cannot force-push"            # expected wording
+      - mechanism: "ruleset on main (rule not named in the response)"
+        pattern: "GH013"                        # recorded: rulesets
+
+  - id: NC-02
+    claim: main cannot be deleted.
+    run_as: [agent, maintainer]
+    attempt: { kind: delete-branch, branch: main }
+    refused_by:
+      - mechanism: "platform: default-branch guard — NOT a ruleset; this probe only credits the ruleset on a non-default branch"
+        pattern: "refusing to delete the current branch"
+      - mechanism: "ruleset on main: block deletion"
+        pattern: "Cannot delete this branch"    # expected wording
+      - mechanism: "ruleset on main (rule not named in the response)"
+        pattern: "GH013"
+
+  - id: NC-03
+    claim: Nothing reaches main except through a pull request.
+    run_as: [agent, maintainer]
+    attempt: { kind: direct-push, branch: main, path: docs/PROBE.md }
+    refused_by:
+      - mechanism: "ruleset on main: changes must be made through a pull request"
+        pattern: "pull request"                 # expected: "Changes must be made through a pull request"
+      - mechanism: "ruleset on main (rule not named in the response)"
+        pattern: "GH013"
+
+  - id: NC-04
+    claim: An unsigned commit touching a constitutional path is refused.
+    run_as: [agent, maintainer]
+    attempt: { kind: direct-push, branch: main, path: invariants/PROBE, signed: false }
+    refused_by:
+      - mechanism: "ruleset: required signatures on constitutional paths"
+        pattern: "signature"                    # expected: "Commits must have verified signatures"
+      - mechanism: "ruleset: restrict file paths on constitutional paths"
+        pattern: "restricted file"              # expected wording
+      - mechanism: "ruleset on main: changes must be made through a pull request — the path and signature rules were NOT exercised by this response"
+        pattern: "pull request"
+      - mechanism: "ruleset on main (rule not named in the response)"
+        pattern: "GH013"
+
+  - id: NC-05
+    claim: A release tag cannot be pushed by a non-release identity.
+    run_as: [agent, maintainer]
+    attempt: { kind: push-tag, tag: v0.0.1 }
+    refused_by:
+      - mechanism: "ruleset: tag protection on v*"
+        pattern: "refs/tags/v0.0.1"             # recorded: "Repository rule violations found for refs/tags/…"
+      - mechanism: "ruleset (rule not named in the response)"
+        pattern: "GH013"
+
+  - id: NC-06
+    claim: The agent identity cannot open a pull request.
+    run_as: [agent]
+    attempt:
+      kind: api-call
+      method: POST
+      path: repos/dokimastes/dokimastes/pulls
+      body: { title: "dok negative-capability probe", head: "agent/negative-capability-probe", base: "main" }
+    refused_by:
+      - mechanism: "credential: agent token has no pull_requests:write"
+        pattern: "(HTTP 403)"
+      - mechanism: "credential: agent token cannot see the repository at all"
+        pattern: "(HTTP 404)"
+
+  - id: NC-07
+    claim: A pull request with a failing required check cannot be merged.
+    run_as: [maintainer]
+    attempt: { kind: merge-with-failing-check }
+    refused_by:
+      - mechanism: "ruleset on main: required status checks"
+        pattern: "required status check"
+
+  - id: NC-08
+    claim: A non-steward approval does not satisfy review on .dok/gate-pin.
+    run_as: [maintainer]
+    attempt: { kind: approve-gate-path-as-non-steward, path: .dok/gate-pin }
+    refused_by:
+      - mechanism: "CODEOWNERS: /.dok/gate-pin → @dokimastes/stewards, review from code owners required"
+        pattern: "code owner"
+
+  - id: NC-09
+    claim: A repository admin who is not an organisation owner cannot remove a required check.
+    run_as: [repo-admin]
+    attempt: { kind: remove-required-check-as-admin }
+    refused_by:
+      - mechanism: "organisation-level ruleset: not editable from the repository"
+        pattern: "(HTTP 403)"
+
+  - id: NC-10
+    claim: CODEOWNERS resolves to real, populated teams.
+    run_as: [agent, maintainer, steward, repo-admin]
+    assert: { kind: codeowners-resolve }
+
+  - id: NC-11
+    claim: The organisation's default workflow token is read-only.
+    run_as: [steward]
+    assert:
+      kind: api-value
+      path: orgs/dokimastes/actions/permissions/workflow
+      pointer: /default_workflow_permissions
+      equals: read
+
+  - id: NC-12
+    claim: The organisation's base repository permission is none.
+    run_as: [steward]
+    assert:
+      kind: api-value
+      path: orgs/dokimastes
+      pointer: /default_repository_permission
+      equals: none
+
+  - id: NC-13
+    claim: Two-factor authentication is required organisation-wide.
+    run_as: [steward]
+    assert:
+      kind: api-value
+      path: orgs/dokimastes
+      pointer: /two_factor_requirement_enabled
+      equals: true
+
+  - id: NC-14
+    claim: Secret scanning push protection is on.
+    run_as: [steward, repo-admin]
+    assert:
+      kind: api-value
+      path: repos/dokimastes/dokimastes
+      pointer: /security_and_analysis/secret_scanning_push_protection/status
+      equals: enabled
+
+  - id: NC-15
+    claim: Private vulnerability reporting is enabled — a classifier bug is a governance bypass, not a crash.
+    run_as: [agent, maintainer, steward, repo-admin]
+    assert:
+      kind: api-value
+      path: repos/dokimastes/dokimastes/private-vulnerability-reporting
+      pointer: /enabled
+      equals: true

@@ -22,3 +22,7 @@ jobs:
       - run: cargo test --all-targets
       - name: The shipped pack loads and lists what it would try
         run: cargo run --quiet -- conform --pack conformance/negative-capability/pack.yaml --as agent --expect green --dry-run
+      - name: The framework assesses its own substrate (informational; refusals would fail)
+        run: cargo run --quiet -- assess --repo . | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: The example profile assesses without refusal
+        run: cargo run --quiet -- assess --repo . --profile docs/examples/profile.yaml >/dev/null

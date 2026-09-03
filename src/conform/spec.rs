@@ -70,8 +70,6 @@ pub struct Probe {
     /// The sentence the framework makes to a client, an auditor or a
     /// Betriebsrat. Untested, it is a sentence in a document.
     pub claim: String,
-    #[serde(default)]
-    pub stories: Vec<String>,
     /// Identities under which a result is meaningful.
     pub run_as: Vec<Identity>,
     #[serde(default)]

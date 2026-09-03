@@ -118,7 +118,6 @@ pub fn run(args: Args) -> Result<ExitCode> {
         records.push(Record {
             id: p.id.clone(),
             claim: p.claim.clone(),
-            stories: p.stories.clone(),
             outcome,
             verdict,
             note,

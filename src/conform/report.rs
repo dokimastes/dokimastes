@@ -8,7 +8,6 @@ use super::verdict::{Outcome, Verdict};
 pub struct Record {
     pub id: String,
     pub claim: String,
-    pub stories: Vec<String>,
     #[serde(flatten)]
     pub outcome: Outcome,
     pub verdict: Verdict,
@@ -48,15 +47,12 @@ impl Report {
             "## Negative-capability run — `{}` on `{}` as `{}`, expecting {}\n\n",
             self.pack, self.repository, self.identity, self.expect
         ));
-        out.push_str(
-            "| Probe | Claim | Stories | Verdict | What happened |\n|---|---|---|---|---|\n",
-        );
+        out.push_str("| Probe | Claim | Verdict | What happened |\n|---|---|---|---|\n");
         for r in &self.records {
             out.push_str(&format!(
-                "| {} | {} | {} | **{}** | {} |\n",
+                "| {} | {} | **{}** | {} |\n",
                 r.id,
                 cell(&r.claim),
-                r.stories.join(", "),
                 verdict_label(r.verdict),
                 cell(&r.note)
             ));

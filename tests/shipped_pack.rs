@@ -24,11 +24,4 @@ fn shipped_pack_loads_and_covers_the_rehearsal_probe_set() {
         vec![Identity::RepoAdmin],
         "NC-09 is meaningless from any other account"
     );
-    for p in &pack.probes {
-        assert!(
-            !p.stories.is_empty(),
-            "{}: every claim traces to a backlog story",
-            p.id
-        );
-    }
 }

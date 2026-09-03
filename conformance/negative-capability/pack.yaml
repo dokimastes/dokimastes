@@ -28,7 +28,6 @@ target:
 probes:
   - id: NC-01
     claim: main cannot be force-pushed.
-    stories: [S4.1]
     run_as: [agent, maintainer]
     attempt: { kind: force-push, branch: main }
     refused_by:
@@ -39,7 +38,6 @@ probes:
 
   - id: NC-02
     claim: main cannot be deleted.
-    stories: [S4.1]
     run_as: [agent, maintainer]
     attempt: { kind: delete-branch, branch: main }
     refused_by:
@@ -52,7 +50,6 @@ probes:
 
   - id: NC-03
     claim: Nothing reaches main except through a pull request.
-    stories: [S4.1]
     run_as: [agent, maintainer]
     attempt: { kind: direct-push, branch: main, path: docs/PROBE.md }
     refused_by:
@@ -63,7 +60,6 @@ probes:
 
   - id: NC-04
     claim: An unsigned commit touching a constitutional path is refused.
-    stories: [S4.2, S4.8]
     run_as: [agent, maintainer]
     attempt: { kind: direct-push, branch: main, path: invariants/PROBE, signed: false }
     refused_by:
@@ -78,7 +74,6 @@ probes:
 
   - id: NC-05
     claim: A release tag cannot be pushed by a non-release identity.
-    stories: [S4.1, S7.4]
     run_as: [agent, maintainer]
     attempt: { kind: push-tag, tag: v0.0.1 }
     refused_by:
@@ -89,7 +84,6 @@ probes:
 
   - id: NC-06
     claim: The agent identity cannot open a pull request.
-    stories: [S4.1]
     run_as: [agent]
     attempt:
       kind: api-call
@@ -104,7 +98,6 @@ probes:
 
   - id: NC-07
     claim: A pull request with a failing required check cannot be merged.
-    stories: [S4.2]
     run_as: [maintainer]
     attempt: { kind: merge-with-failing-check }
     refused_by:
@@ -113,7 +106,6 @@ probes:
 
   - id: NC-08
     claim: A non-steward approval does not satisfy review on .dok/gate-pin.
-    stories: [S4.2, S4.9]
     run_as: [maintainer]
     attempt: { kind: approve-gate-path-as-non-steward, path: .dok/gate-pin }
     refused_by:
@@ -122,7 +114,6 @@ probes:
 
   - id: NC-09
     claim: A repository admin who is not an organisation owner cannot remove a required check.
-    stories: [S4.2, S4.6]
     run_as: [repo-admin]
     attempt: { kind: remove-required-check-as-admin }
     refused_by:
@@ -131,13 +122,11 @@ probes:
 
   - id: NC-10
     claim: CODEOWNERS resolves to real, populated teams.
-    stories: [S4.2, S4.9]
     run_as: [agent, maintainer, steward, repo-admin]
     assert: { kind: codeowners-resolve }
 
   - id: NC-11
     claim: The organisation's default workflow token is read-only.
-    stories: [S4.1]
     run_as: [steward]
     assert:
       kind: api-value
@@ -147,7 +136,6 @@ probes:
 
   - id: NC-12
     claim: The organisation's base repository permission is none.
-    stories: [S4.1]
     run_as: [steward]
     assert:
       kind: api-value
@@ -157,7 +145,6 @@ probes:
 
   - id: NC-13
     claim: Two-factor authentication is required organisation-wide.
-    stories: [S4.8]
     run_as: [steward]
     assert:
       kind: api-value
@@ -167,7 +154,6 @@ probes:
 
   - id: NC-14
     claim: Secret scanning push protection is on.
-    stories: [S5.2]
     run_as: [steward, repo-admin]
     assert:
       kind: api-value
@@ -177,7 +163,6 @@ probes:
 
   - id: NC-15
     claim: Private vulnerability reporting is enabled — a classifier bug is a governance bypass, not a crash.
-    stories: [S7.4]
     run_as: [agent, maintainer, steward, repo-admin]
     assert:
       kind: api-value

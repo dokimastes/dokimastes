@@ -1,0 +1,8 @@
+#!/bin/sh
+# One call, one line of JSON: where main and side point, which tags exist.
+set -eu
+cd /srv/repo.git
+main=$(git rev-parse --verify --quiet refs/heads/main || echo absent)
+side=$(git rev-parse --verify --quiet refs/heads/side || echo absent)
+tags=$(git tag --list | tr '\n' ' ' | sed 's/ *$//')
+printf '{"main":"%s","side":"%s","tags":"%s"}\n' "$main" "$side" "$tags"

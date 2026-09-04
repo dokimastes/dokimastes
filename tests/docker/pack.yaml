@@ -1,0 +1,52 @@
+# The pack the acceptance scenarios run against the containerised
+# repository. Probe ids are the words the feature files use.
+apiVersion: dokimastes/v1
+kind: NegativeCapabilityPack
+name: container-rehearsal
+description: The four git attempts, the default-branch case, and an identity-gated probe.
+target:
+  repository: local/rehearsal
+
+probes:
+  - id: force-push
+    claim: main cannot be force-pushed.
+    run_as: [agent, maintainer]
+    attempt: { kind: force-push, branch: main }
+    refused_by:
+      - { mechanism: ruleset, pattern: GH013 }
+
+  - id: delete-branch
+    claim: A protected branch cannot be deleted.
+    run_as: [agent, maintainer]
+    attempt: { kind: delete-branch, branch: side }
+    refused_by:
+      - { mechanism: ruleset, pattern: GH013 }
+
+  - id: direct-push
+    claim: Nothing reaches main except through a pull request.
+    run_as: [agent, maintainer]
+    attempt: { kind: direct-push, branch: main, path: docs/PROBE.md, signed: false }
+    refused_by:
+      - { mechanism: ruleset, pattern: GH013 }
+
+  - id: push-tag
+    claim: A release tag cannot be pushed by a non-release identity.
+    run_as: [agent, maintainer]
+    attempt: { kind: push-tag, tag: v0.0.1 }
+    refused_by:
+      - { mechanism: ruleset, pattern: GH013 }
+
+  - id: delete-main
+    claim: main cannot be deleted.
+    run_as: [agent, maintainer]
+    attempt: { kind: delete-branch, branch: main }
+    refused_by:
+      - { mechanism: default-branch guard, pattern: refusing to delete the current branch }
+      - { mechanism: ruleset, pattern: GH013 }
+
+  - id: admin-only
+    claim: A repository admin cannot remove a required check.
+    run_as: [repo-admin]
+    attempt: { kind: remove-required-check-as-admin }
+    refused_by:
+      - { mechanism: organisation-level ruleset, pattern: "(HTTP 403)" }

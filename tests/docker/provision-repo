@@ -1,0 +1,17 @@
+#!/bin/sh
+# Provision a bare repository at /srv/repo.git with one commit on `main`
+# and the same commit on `side`, plus a working clone at /srv/work.
+# Prints the repository state as verify-repo sees it.
+set -eu
+rm -rf /srv/repo.git /srv/work /srv/seed
+git init --quiet --bare -b main /srv/repo.git
+git init --quiet -b main /srv/seed
+cd /srv/seed
+printf 'seed\n' > README.md
+git add README.md
+git -c user.name=seed -c user.email=seed@example.invalid -c commit.gpgsign=false commit --quiet -m seed
+git remote add origin /srv/repo.git
+git push --quiet origin main:main
+git push --quiet origin main:side
+git clone --quiet /srv/repo.git /srv/work
+verify-repo

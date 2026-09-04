@@ -19,6 +19,15 @@ serde_json = "1"
 serde_yaml = "0.9"
 tempfile = "3"
 
+[dev-dependencies]
+cucumber = "0.23"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+# Acceptance scenarios in Gherkin; the runner is cucumber, not libtest.
+[[test]]
+name = "bdd"
+harness = false
+
 [profile.release]
 codegen-units = 1
 lto = true

@@ -1,0 +1,49 @@
+# A project profile, the shape `dok assess` reads. One reviewed file per
+# project, in the enforcement tier, so a project cannot vary its own
+# constraints. Judgement fields (accountable, disqualifiers) are a person's
+# to fill; an untouched one is reported as unset, not configured.
+id: acme-core-banking
+tenant: acme
+
+contract: werkvertrag               # → lane ceiling 3.5; D4 closed-loop disqualified
+sector: finance                     # activates conditional obligation modules
+annex_iii: false
+client_data_class: streng-vertraulich
+egress_profile: bedrock-eu-scp
+
+scm_binding: github-pr
+enforcement_class: B                # merge-time refusal; still discharges § 633
+evidence_trust: kms
+
+substrate: amber                    # what a person recorded; `dok assess` recomputes and
+default_mode: m3-staged             # refuses a profile that claims more than measured
+model_pin: claude-opus-5@2026-06
+
+ci:
+  inner_loop: "./gradlew check -x integrationTest"
+  inner_loop_p95_minutes: 4
+  full_suite_p95_minutes: 26
+  flake_rate_30d: 0.9%
+
+stack: [java-21, spring-boot, oracle]
+verdict_inputs:
+  static: semgrep-block
+  quality: sonarqube-gate
+  mutation: pitest                  # no baseline score recorded yet → concern → amber
+  snippet: scanoss + ort
+
+oracles:
+  - workload: batch-etl
+    class: machine-checkable-spec   # OpenAPI + Schemathesis
+  - workload: reporting-ui
+    class: none                     # → no lane above 3, no exceptions
+
+path_registry: CODEOWNERS
+disqualifiers: [payment-authorisation, kyc, crypto]
+accountable:                        # a person, named by a person
+
+assessment:
+  measured_on: 2026-09-03
+  cold_build_command: "./gradlew build"
+  test_green_on_main: true
+  required_checks_settable_by_non_developers: true

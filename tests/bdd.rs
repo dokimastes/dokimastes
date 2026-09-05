@@ -7,14 +7,15 @@
 //! Needs docker or podman. Without one the scenarios fail; they do not
 //! skip, because a claim with no attempt behind it is unproven.
 //!
-//! Steps are split by what they do: `provisioning` holds every Given,
-//! `conform` and `assess` the When and Then steps of their feature, and
-//! `shared` the Then steps both features use.
+//! Steps are split by what they do: `provisioning` holds the shared Given
+//! steps, `conform`, `assess` and `baseline` the steps of their feature, and
+//! `shared` the Then steps every feature uses.
 
 mod container;
 
 mod bdd {
     pub mod assess;
+    pub mod baseline;
     pub mod conform;
     pub mod provisioning;
     pub mod shared;

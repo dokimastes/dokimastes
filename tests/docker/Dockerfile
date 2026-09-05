@@ -16,7 +16,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /src/target/release/dok /usr/local/bin/dok
-COPY tests/docker/provision-repo tests/docker/verify-repo tests/docker/refuse-pushes /usr/local/bin/
+COPY tests/docker/provision-repo tests/docker/provision-history tests/docker/verify-repo tests/docker/refuse-pushes /usr/local/bin/
 COPY tests/docker/pack.yaml /srv/pack.yaml
-RUN chmod +x /usr/local/bin/provision-repo /usr/local/bin/verify-repo /usr/local/bin/refuse-pushes
+RUN chmod +x /usr/local/bin/provision-repo /usr/local/bin/provision-history /usr/local/bin/verify-repo /usr/local/bin/refuse-pushes
 CMD ["sleep", "infinity"]

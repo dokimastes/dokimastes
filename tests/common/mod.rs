@@ -88,3 +88,109 @@ pub fn ref_exists(bare: &Path, r: &str) -> bool {
         .unwrap()
         .success()
 }
+
+/// The same known month of history `tests/docker/provision-history` builds,
+/// in a temp directory. Returns the repository path and the `now` used.
+pub fn seed_history() -> (tempfile::TempDir, PathBuf, i64) {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("history");
+    std::fs::create_dir_all(&repo).unwrap();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let at = |days: i64| format!("@{} +0000", now - days * 86_400);
+    let commit = |days: i64, msg: &str| {
+        let out = Command::new("git")
+            .arg("-C")
+            .arg(&repo)
+            .args([
+                "-c",
+                "user.name=h",
+                "-c",
+                "user.email=h@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "--quiet",
+                "-m",
+                msg,
+            ])
+            .env("GIT_AUTHOR_DATE", at(days))
+            .env("GIT_COMMITTER_DATE", at(days))
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    };
+    let write = |name: &str, lines: std::ops::RangeInclusive<u32>, append: bool| {
+        let body: String = lines.map(|n| format!("{n}\n")).collect();
+        let path = repo.join(name);
+        if append {
+            let mut existing = std::fs::read_to_string(&path).unwrap_or_default();
+            existing.push_str(&body);
+            std::fs::write(&path, existing).unwrap();
+        } else {
+            std::fs::write(&path, body).unwrap();
+        }
+    };
+    git(&repo, &["init", "--quiet", "-b", "main"]);
+    write("a.rs", 1..=100, false);
+    git(&repo, &["add", "a.rs"]);
+    commit(20, "add a");
+    write("a.rs", 1..=70, false);
+    git(&repo, &["add", "a.rs"]);
+    commit(15, "trim a");
+    git(&repo, &["checkout", "--quiet", "-b", "feature"]);
+    write("b.rs", 1..=10, false);
+    git(&repo, &["add", "b.rs"]);
+    commit(10, "feature part 1");
+    write("b.rs", 11..=20, true);
+    git(&repo, &["add", "b.rs"]);
+    commit(9, "feature part 2");
+    git(&repo, &["checkout", "--quiet", "main"]);
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args([
+            "-c",
+            "user.name=h",
+            "-c",
+            "user.email=h@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "merge",
+            "--quiet",
+            "--no-ff",
+            "--no-edit",
+            "feature",
+        ])
+        .env("GIT_AUTHOR_DATE", at(8))
+        .env("GIT_COMMITTER_DATE", at(8))
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["-c", "tag.gpgsign=false", "tag", "v0.1.0"])
+        .env("GIT_COMMITTER_DATE", at(8))
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    write("c.rs", 1..=1, false);
+    git(&repo, &["add", "c.rs"]);
+    commit(3, "Revert \"something\"");
+    (dir, repo, now)
+}

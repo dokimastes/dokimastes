@@ -26,9 +26,11 @@ Nothing touches GitHub, a network, or a credential. The pack that runs against t
 Needs `docker` or `podman` on the path (`DOK_CONTAINER_RUNTIME` picks one explicitly). The image `dokimastes/bdd:local` is built from `tests/docker/Dockerfile` once per test run; layer caching makes reruns fast.
 
 ```sh
-cargo test --test bdd            # the scenarios alone
-cargo test --all-targets         # everything, scenarios included
+cargo test --test bdd            # the scenarios; not part of --all-targets, because they need a container runtime
+cargo test --all-targets         # unit and integration tests
 ```
+
+In CI the scenarios are their own job, `acceptance`, so a failing claim is told apart from a failing unit test at a glance.
 
 Without a container runtime the scenarios fail. They do not skip: a claim with no attempt behind it is unproven.
 

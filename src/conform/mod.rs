@@ -143,7 +143,7 @@ pub fn run(args: Args) -> Result<ExitCode> {
 }
 
 /// `Some(reason)` when the probe must not be counted under this identity.
-fn identity_gate(probe: &Probe, identity: Identity) -> Option<String> {
+pub fn identity_gate(probe: &Probe, identity: Identity) -> Option<String> {
     if probe.run_as.contains(&identity) {
         return None;
     }

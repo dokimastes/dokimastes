@@ -1,0 +1,7 @@
+#!/bin/sh
+# Install a pre-receive hook on the bare repository that refuses every
+# push with the given message — the server-side tier, refusing at push time.
+set -eu
+hook=/srv/repo.git/hooks/pre-receive
+printf '#!/bin/sh\necho "%s" >&2\nexit 1\n' "$1" > "$hook"
+chmod +x "$hook"

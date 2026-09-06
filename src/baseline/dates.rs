@@ -33,13 +33,21 @@ pub fn iso_date(unix: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
-/// Parse `YYYY-MM-DD` to the unix time of that day's start.
+/// Parse `YYYY-MM-DD` — exactly four, two and two digits — to the unix time
+/// of that day's start. Anything else, including a sign or a fifth digit,
+/// is not a date.
 pub fn parse_iso_date(text: &str) -> Option<i64> {
-    let mut parts = text.trim().split('-');
-    let y: i64 = parts.next()?.parse().ok()?;
-    let m: u32 = parts.next()?.parse().ok()?;
-    let d: u32 = parts.next()?.parse().ok()?;
-    if parts.next().is_some() || !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+    let parts: Vec<&str> = text.trim().split('-').collect();
+    let [y, m, d] = parts.as_slice() else {
+        return None;
+    };
+    let digits = |s: &str, n: usize| {
+        (s.len() == n && s.bytes().all(|b| b.is_ascii_digit()))
+            .then(|| s.parse::<i64>().ok())
+            .flatten()
+    };
+    let (y, m, d) = (digits(y, 4)?, digits(m, 2)? as u32, digits(d, 2)? as u32);
+    if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
         return None;
     }
     let days = days_from_civil(y, m, d);
@@ -47,7 +55,7 @@ pub fn parse_iso_date(text: &str) -> Option<i64> {
     if civil_from_days(days) != (y, m, d) {
         return None;
     }
-    Some(days * DAY)
+    days.checked_mul(DAY)
 }
 
 pub fn now_unix() -> i64 {
@@ -75,5 +83,12 @@ mod tests {
         assert_eq!(parse_iso_date("2026-02-30"), None);
         assert_eq!(parse_iso_date("2026-13-01"), None);
         assert_eq!(parse_iso_date("yesterday"), None);
+        assert_eq!(parse_iso_date("+2026-01-01"), None, "no sign");
+        assert_eq!(
+            parse_iso_date("99999999999999-01-01"),
+            None,
+            "no overflow, no panic"
+        );
+        assert_eq!(parse_iso_date("2026-1-01"), None, "two-digit month");
     }
 }

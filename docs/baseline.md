@@ -27,9 +27,11 @@ A figure history cannot yield is reported with the reason, in one of three kinds
 
 ## How the figures are computed
 
-- **Churn** is lines added in the window and deleted again in the same file within 14 days, at file granularity. That is an upper bound on line-level churn, and the report says so.
-- **Merges** are merge commits on the first-parent line. A squash-merged or rebased history has none; the report then says pull-request figures need the platform API rather than showing zeros as if they were measured.
-- **Lead time** is the oldest merged commit to the merge commit. **Releases** are `v*` tags in the window, a proxy for deploys.
+- **Churn** is lines added in the window and deleted again in the same file within 14 days, at file granularity and following renames. That is an upper bound on line-level churn, and the report says so.
+- **Merges** are merge commits on the first-parent line. A squash-merged or rebased history has none; the three merge figures are then reported as *not recoverable, platform API* — in the machine-readable status, not only in prose — rather than as zeros that look measured.
+- **Lead time** runs from the oldest merged commit, by author time so a rebase before merging does not reset it, over every non-first parent of the merge, to the merge commit. Commits older than the window are not seen, so for very long-lived branches it is a lower bound.
+- **Releases** are tags named `v` or `V` followed by a digit, in the window, a proxy for deploys. `vendored` is not a release.
+- Two `git log` passes cover the window whatever its size; no per-merge subprocesses.
 - Only counts leave the tool. No author, email or login appears in the output; the number of distinct authors is reported as a number.
 
 ## The refusal

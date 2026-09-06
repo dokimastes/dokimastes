@@ -27,7 +27,7 @@ fn known_history_yields_the_expected_figures() {
     assert_eq!(h.release_tags.len(), 1);
     assert_eq!(h.distinct_authors, 1);
 
-    let b = compute("history", &h, 60, now);
+    let b = compute("history", &h, 60, now, None);
     assert!(close(
         metric(&b, "commits per week").value,
         5.0 / (60.0 / 7.0)
@@ -58,13 +58,17 @@ fn a_window_that_misses_the_history_is_empty_not_wrong() {
     let (_dir, repo, now) = common::seed_history();
     let h = history::read(&repo, now - DAY, now).unwrap();
     assert!(h.commits.is_empty() && h.merges.is_empty() && h.release_tags.is_empty());
-    let b = compute("history", &h, 1, now);
+    let b = compute("history", &h, 1, now, None);
     assert_eq!(
         metric(&b, "code churn within 14 days").value,
         None,
         "no added lines, no ratio"
     );
     assert_eq!(metric(&b, "commits per week").value, Some(0.0));
+    assert!(
+        matches!(metric(&b, "merges per week").status, Status::PlatformApi),
+        "no merges: not measured as zero"
+    );
 }
 
 #[test]

@@ -88,3 +88,31 @@ pub fn ref_exists(bare: &Path, r: &str) -> bool {
         .unwrap()
         .success()
 }
+
+/// The known month of history that `tests/docker/provision-history` builds,
+/// in a temp directory — the same script, so there is one fixture.
+/// Returns the repository path and the `now` the dates are relative to.
+pub fn seed_history() -> (tempfile::TempDir, PathBuf, i64) {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("history");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let script = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/docker/provision-history"
+    );
+    let out = Command::new("sh")
+        .arg(script)
+        .arg(&repo)
+        .env("DOK_NOW", now.to_string())
+        .output()
+        .expect("sh");
+    assert!(
+        out.status.success(),
+        "provision-history: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    (dir, repo, now)
+}

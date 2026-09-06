@@ -1,0 +1,38 @@
+#!/bin/sh
+# A repository with a known month of history, dated relative to now, so the
+# baseline figures are predictable. The one fixture for the Rust
+# integration test and the containerised scenarios.
+#
+#   usage: provision-history [repo-dir]      (default /srv/history)
+#   env:   DOK_NOW=<unix seconds>            (default: now)
+#
+#   -20d  add a.rs, 100 lines
+#   -15d  trim a.rs by 30 lines            → churn 30 of 121 added lines
+#   -10d  feature: b.rs +10   (branch)
+#    -9d  feature: b.rs +10   (branch)
+#    -8d  merge --no-ff, 20 lines, lead time 48 h; tag v0.1.0
+#    -3d  a commit titled Revert "…", c.rs +1
+set -eu
+repo=${1:-/srv/history}
+now=${DOK_NOW:-$(date +%s)}
+at() { echo "@$(( now - $1 * 86400 )) +0000"; }
+g() { git -C "$repo" -c user.name=h -c user.email=h@example.invalid -c commit.gpgsign=false -c tag.gpgsign=false "$@"; }
+commit() { GIT_AUTHOR_DATE="$(at "$1")" GIT_COMMITTER_DATE="$(at "$1")" g commit --quiet -m "$2"; }
+
+rm -rf "$repo"
+git init --quiet -b main "$repo"
+seq 1 100 > "$repo/a.rs"
+g add a.rs && commit 20 "add a"
+head -70 "$repo/a.rs" > "$repo/a.tmp" && mv "$repo/a.tmp" "$repo/a.rs"
+g add a.rs && commit 15 "trim a"
+g checkout --quiet -b feature
+seq 1 10 > "$repo/b.rs"
+g add b.rs && commit 10 "feature part 1"
+seq 11 20 >> "$repo/b.rs"
+g add b.rs && commit 9 "feature part 2"
+g checkout --quiet main
+GIT_AUTHOR_DATE="$(at 8)" GIT_COMMITTER_DATE="$(at 8)" g merge --quiet --no-ff --no-edit feature
+GIT_COMMITTER_DATE="$(at 8)" g tag v0.1.0
+echo 1 > "$repo/c.rs"
+g add c.rs && commit 3 'Revert "something"'
+g log --oneline | wc -l | tr -d ' '

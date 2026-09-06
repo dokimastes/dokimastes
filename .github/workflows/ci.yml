@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0   # the baseline reads history
       - name: Toolchain from rust-toolchain.toml
         run: rustup show active-toolchain || rustup toolchain install
       - run: cargo fmt --all --check
@@ -24,6 +26,8 @@ jobs:
         run: cargo run --quiet -- conform --pack conformance/negative-capability/pack.yaml --as agent --expect green --dry-run
       - name: The framework assesses its own substrate (informational; refusals would fail)
         run: cargo run --quiet -- assess --repo . | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: The framework captures its own baseline (informational)
+        run: cargo run --quiet -- baseline --repo . --window-days 180 | tee -a "$GITHUB_STEP_SUMMARY"
       - name: The example profile assesses without refusal
         run: cargo run --quiet -- assess --repo . --profile docs/examples/profile.yaml >/dev/null
 
